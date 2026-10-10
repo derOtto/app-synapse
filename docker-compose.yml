@@ -1,0 +1,97 @@
+services:
+  synapse:
+    image: docker.io/matrixdotorg/synapse:v1.145.0
+    restart: unless-stopped
+    environment:
+      - SYNAPSE_CONFIG_PATH=/data/homeserver.yaml
+      - VIRTUAL_HOST=element.jc-otto.de
+      - VIRTUAL_PORT=8008
+      - LETSENCRYPT_HOST=element.jc-otto.de
+    volumes:
+      - data:/data
+    depends_on:
+      - db
+    networks:
+      - default
+      - proxy
+
+  db:
+    image: docker.io/postgres:15-alpine
+    environment:
+      - POSTGRES_USER=${SYNAPSE_POSTGRES_USER:?}
+      - POSTGRES_PASSWORD=${SYNAPSE_POSTGRES_PASSWORD:?}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - db:/var/lib/postgresql/data
+
+  mautrix-whatsapp:
+    image: dock.mau.dev/mautrix/whatsapp:v26.09
+    restart: unless-stopped
+    volumes:
+      - whatsapp:/data
+    depends_on:
+      - db-whatsapp
+
+  db-whatsapp:
+    image: docker.io/postgres:15-alpine
+    environment:
+      - POSTGRES_USER=whatsapp
+      - POSTGRES_PASSWORD=${SYNAPSE_WHATSAPP_POSTGRES_PASSWORD:?}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - db-whatsapp:/var/lib/postgresql/data
+    depends_on:
+      - synapse
+
+  mautrix-signal:
+    image: dock.mau.dev/mautrix/signal:v26.09
+    restart: unless-stopped
+    volumes:
+      - signal:/data
+    depends_on:
+      - db-signal
+
+  db-signal:
+    image: docker.io/postgres:15-alpine
+    environment:
+      - POSTGRES_USER=signal
+      - POSTGRES_PASSWORD=${SYNAPSE_SIGNAL_POSTGRES_PASSWORD:?}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - db-signal:/var/lib/postgresql/data
+    depends_on:
+      - synapse
+
+  mautrix-telegram:
+    image: dock.mau.dev/mautrix/telegram:v26.09
+    restart: unless-stopped
+    volumes:
+      - telegram:/data
+    depends_on:
+      - db-telegram
+
+  db-telegram:
+    image: docker.io/postgres:15-alpine
+    environment:
+      - POSTGRES_USER=telegram
+      - POSTGRES_PASSWORD=${SYNAPSE_TELEGRAM_POSTGRES_PASSWORD:?}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - db-telegram:/var/lib/postgresql/data
+    depends_on:
+      - synapse
+
+networks:
+  proxy:
+    external: true
+
+volumes:
+  data:
+  whatsapp:
+  signal:
+  telegram:
+  db:
+  db-whatsapp:
+  db-signal:
+  db-telegram:
+

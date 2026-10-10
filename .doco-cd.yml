@@ -1,0 +1,4 @@
+name: synapse
+working_dir: .
+compose_files:
+  - docker-compose.yml
